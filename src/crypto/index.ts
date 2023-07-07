@@ -1006,21 +1006,6 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
             }
         };
 
-        // const signKeyBackupWithCrossSigning = async (keyBackupAuthData: IKeyBackupInfo["auth_data"]): Promise<void> => {
-        //     if (this.crossSigningInfo.getId() && (await this.crossSigningInfo.isStoredInKeyCache("master"))) {
-        //         try {
-        //             logger.log("Adding cross-signing signature to key backup");
-        //             await this.crossSigningInfo.signObject(keyBackupAuthData, "master");
-        //         } catch (e) {
-        //             // This step is not critical (just helpful), so we catch here
-        //             // and continue if it fails.
-        //             logger.error("Signing key backup with cross-signing keys failed", e);
-        //         }
-        //     } else {
-        //         logger.warn("Cross-signing keys not available, skipping signature on key backup");
-        //     }
-        // };
-
         const oldSSSSKey = await this.secretStorage.getKey();
         const [oldKeyId, oldKeyInfo] = oldSSSSKey || [null, null];
         const storageExists =
