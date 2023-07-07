@@ -3293,10 +3293,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      *     of key backup status yet, returns null.
      */
     public getKeyBackupEnabled(): boolean | null {
-        if (!this.crypto) {
+        if (!this.getCrypto()) {
             throw new Error("End-to-end encryption disabled");
         }
-        return this.crypto.backupManager.getKeyBackupEnabled();
+        return this.getCrypto()?.getBackupManager().getKeyBackupStatus()?.enabled ?? null;
     }
 
     /**
@@ -3433,7 +3433,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         // If we're currently backing up to this backup... stop.
         // (We start using it automatically in createKeyBackupVersion
         // so this is symmetrical).
-        if (this.crypto.backupManager.version) {
+        if (this.getCrypto()?.getBackupManager().getKeyBackupStatus()?.version) {
             this.crypto.backupManager.disableKeyBackup();
         }
 
@@ -7888,9 +7888,9 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Promise which resolves: On success, the empty object `{}`
      */
     public async logout(stopClient = false): Promise<{}> {
-        if (this.crypto?.backupManager?.getKeyBackupEnabled()) {
+        if (this.getCrypto()?.getBackupManager()?.getKeyBackupStatus()?.enabled) {
             try {
-                while ((await this.crypto.backupManager.backupPendingKeys(200)) > 0);
+                while ((await this.crypto!.backupManager.backupPendingKeys(200)) > 0);
             } catch (err) {
                 logger.error("Key backup request failed when logging out. Some keys may be missing from backup", err);
             }

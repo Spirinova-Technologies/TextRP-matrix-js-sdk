@@ -183,7 +183,7 @@ export class BackupManager implements SecureKeyBackup {
         return Boolean(this.algorithm);
     }
 
-    public async getKeyBackupStatus(): Promise<KeyBackupStatus | null> {
+    public getKeyBackupStatus(): KeyBackupStatus | null {
         if (!this.checkedForBackup) {
             return null;
         }

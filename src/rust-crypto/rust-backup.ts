@@ -26,7 +26,7 @@ export class RustBackupManager implements SecureKeyBackup {
         return null;
     }
 
-    public async getKeyBackupStatus(): Promise<KeyBackupStatus | null> {
+    public getKeyBackupStatus(): KeyBackupStatus | null {
         //TODO stub
         return null;
     }

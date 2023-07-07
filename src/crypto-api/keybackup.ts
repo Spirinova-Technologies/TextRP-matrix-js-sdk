@@ -95,7 +95,7 @@ export interface SecureKeyBackup {
     /**
      * Gets the status of the current active key backup if any.
      */
-    getKeyBackupStatus(): Promise<KeyBackupStatus | null>;
+    getKeyBackupStatus(): KeyBackupStatus | null;
 
     /**
      * Stop the SecureKeyBackup manager from backing up keys and allow a clean shutdown.

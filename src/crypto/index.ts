@@ -747,8 +747,9 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
     public async isSecretStorageReady(): Promise<boolean> {
         const secretStorageKeyInAccount = await this.secretStorage.hasKey();
         const privateKeysInStorage = await this.crossSigningInfo.isStoredInSecretStorage(this.secretStorage);
-        const sessionBackupInStorage =
-            !this.backupManager.getKeyBackupEnabled() || (await this.baseApis.isKeyBackupKeyStored());
+        const megolmBackupEnabled = this.getBackupManager().getKeyBackupStatus()?.enabled;
+        // XXX this is a bit smelly
+        const sessionBackupInStorage = !megolmBackupEnabled || (await this.baseApis.isKeyBackupKeyStored());
 
         return !!(secretStorageKeyInAccount && privateKeysInStorage && sessionBackupInStorage);
     }
@@ -1121,7 +1122,7 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
             }
             const decodedBackupKey = new Uint8Array(olmlib.decodeBase64(fixedBackupKey || sessionBackupKey));
             builder.addSessionBackupPrivateKeyToCache(decodedBackupKey);
-        } else if (this.backupManager.getKeyBackupEnabled()) {
+        } else if (this.getBackupManager().getKeyBackupStatus()?.enabled) {
             // key backup is enabled but we don't have a session backup key in SSSS: see if we have one in
             // the cache or the user can provide one, and if so, write it to SSSS
             const backupKey = (await this.getSessionBackupPrivateKey()) || (await getKeyBackupPassphrase?.());

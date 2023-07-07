@@ -201,7 +201,7 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
 
         // At this point there is no backup
         let backupStatus: KeyBackupStatus | null;
-        backupStatus = await aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        backupStatus = aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
         expect(backupStatus).toBeNull();
 
         // Serve a backup with no trusted signature$
@@ -213,7 +213,7 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
         expect(checked?.backupInfo?.version).toStrictEqual(CURVE25519_BACKUP_INFO.version);
         expect(checked?.trustInfo?.usable).toBeFalsy();
 
-        backupStatus = await aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        backupStatus = aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
         expect(backupStatus).toBeNull();
 
         // Add a valid signature to the backup
@@ -237,7 +237,7 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
 
         await backupPromise;
 
-        backupStatus = await aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        backupStatus = aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
         expect(backupStatus).toBeDefined();
         expect(backupStatus?.enabled).toStrictEqual(true);
         expect(backupStatus?.version).toStrictEqual(CURVE25519_BACKUP_INFO.version);
