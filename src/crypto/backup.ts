@@ -115,6 +115,7 @@ export class BackupManager implements SecureKeyBackup {
         this.clientRunning = false;
     }
 
+    /* @deprecated use `getKeyBackupStatus` instead */
     public get version(): string | undefined {
         return this.backupInfo && this.backupInfo.version;
     }

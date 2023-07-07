@@ -19,13 +19,14 @@ import fetchMock from "fetch-mock-jest";
 import { logger } from "../../../src/logger";
 import { decodeRecoveryKey } from "../../../src/crypto/recoverykey";
 import { IKeyBackupInfo, IKeyBackupSession } from "../../../src/crypto/keybackup";
-import { createClient, ICreateClientOpts, IEvent, MatrixClient } from "../../../src";
+import { createClient, CryptoEvent, ICreateClientOpts, IEvent, MatrixClient } from "../../../src";
 import { CRYPTO_BACKENDS, InitCrypto, syncPromise } from "../../test-utils/test-utils";
 import { SyncResponder } from "../../test-utils/SyncResponder";
 import { mockInitialApiRequests } from "../../test-utils/mockEndpoints";
 import { E2EKeyResponder } from "../../test-utils/E2EKeyResponder";
 import { E2EKeyReceiver } from "../../test-utils/E2EKeyReceiver";
 import { MatrixEventEvent } from "../../../src/models/event";
+import { KeyBackupStatus } from "../../../src/crypto-api/keybackup";
 
 const ROOM_ID = "!ROOM:ID";
 
@@ -189,5 +190,56 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
         });
 
         expect(event.getContent()).toEqual("testytest");
+    });
+
+    oldBackendOnly("getKeyBackupStatus() should give correct status", async function () {
+        // 404 means that there is no active backup
+        fetchMock.get("express:/_matrix/client/v3/room_keys/version", 404);
+
+        aliceClient = await initTestClient();
+        await aliceClient.startClient();
+
+        // At this point there is no backup
+        let backupStatus: KeyBackupStatus | null;
+        backupStatus = await aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        expect(backupStatus).toBeNull();
+
+        // Serve a backup with no trusted signature$
+        fetchMock.get("express:/_matrix/client/v3/room_keys/version", CURVE25519_BACKUP_INFO, {
+            overwriteRoutes: true,
+        });
+
+        const checked = await aliceClient.getCrypto()?.getBackupManager().checkAndStart();
+        expect(checked?.backupInfo?.version).toStrictEqual(CURVE25519_BACKUP_INFO.version);
+        expect(checked?.trustInfo?.usable).toBeFalsy();
+
+        backupStatus = await aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        expect(backupStatus).toBeNull();
+
+        // Add a valid signature to the backup
+        const backupDataToSign = JSON.parse(JSON.stringify(CURVE25519_BACKUP_INFO));
+        await aliceClient.getCrypto()!.signObject(backupDataToSign.auth_data);
+        fetchMock.get("express:/_matrix/client/v3/room_keys/version", backupDataToSign, {
+            overwriteRoutes: true,
+        });
+
+        // check that signaling is working
+        const backupPromise = new Promise<void>((resolve, reject) => {
+            aliceClient.on(CryptoEvent.KeyBackupStatus, (enabled) => {
+                if (enabled) {
+                    resolve();
+                }
+            });
+        });
+
+        const validCheck = await aliceClient.getCrypto()?.getBackupManager().checkAndStart();
+        expect(validCheck?.trustInfo?.usable).toStrictEqual(true);
+
+        await backupPromise;
+
+        backupStatus = await aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        expect(backupStatus).toBeDefined();
+        expect(backupStatus?.enabled).toStrictEqual(true);
+        expect(backupStatus?.version).toStrictEqual(CURVE25519_BACKUP_INFO.version);
     });
 });
