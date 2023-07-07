@@ -45,16 +45,6 @@ export interface KeyBackupInfo {
 }
 
 /**
- * Status of the active key backup.
- */
-export interface KeyBackupStatus {
-    /** The backup version */
-    version: string;
-    /** True if the client is backing up keys to this backup */
-    enabled: boolean;
-}
-
-/**
  * Detailed signature information of a backup.
  * This can be used to display what devices/identities are trusting a backup.
  */
@@ -94,8 +84,9 @@ export interface IKeyBackupCheck {
 export interface SecureKeyBackup {
     /**
      * Gets the status of the current active key backup if any.
+     * If there is a usable backup returns the version, if not null.
      */
-    getKeyBackupStatus(): KeyBackupStatus | null;
+    getKeyBackupStatus(): string | null;
 
     /**
      * Stop the SecureKeyBackup manager from backing up keys and allow a clean shutdown.

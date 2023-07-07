@@ -3296,7 +3296,10 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         if (!this.getCrypto()) {
             throw new Error("End-to-end encryption disabled");
         }
-        return this.getCrypto()?.getBackupManager().getKeyBackupStatus()?.enabled ?? null;
+        // TODO will need addtitional API to know if the check has been done,
+        // there is a special meaning for null in this method, although it doesn't
+        // look that it's used anywhere
+        return this.getCrypto()?.getBackupManager().getKeyBackupStatus() != null;
     }
 
     /**
@@ -3433,7 +3436,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
         // If we're currently backing up to this backup... stop.
         // (We start using it automatically in createKeyBackupVersion
         // so this is symmetrical).
-        if (this.getCrypto()?.getBackupManager().getKeyBackupStatus()?.version) {
+        if (this.getCrypto()?.getBackupManager().getKeyBackupStatus()) {
             this.crypto.backupManager.disableKeyBackup();
         }
 
@@ -7888,7 +7891,7 @@ export class MatrixClient extends TypedEventEmitter<EmittedEvents, ClientEventHa
      * @returns Promise which resolves: On success, the empty object `{}`
      */
     public async logout(stopClient = false): Promise<{}> {
-        if (this.getCrypto()?.getBackupManager()?.getKeyBackupStatus()?.enabled) {
+        if (this.getCrypto()?.getBackupManager()?.getKeyBackupStatus()) {
             try {
                 while ((await this.crypto!.backupManager.backupPendingKeys(200)) > 0);
             } catch (err) {

@@ -34,7 +34,7 @@ import {
     IKeyBackupInfo,
     IKeyBackupSession,
 } from "./keybackup";
-import { IKeyBackupCheck, KeyBackupStatus, SecureKeyBackup, SigInfo, TrustInfo } from "../crypto-api";
+import { IKeyBackupCheck, SecureKeyBackup, SigInfo, TrustInfo } from "../crypto-api";
 import { UnstableValue } from "../NamespacedValue";
 import { CryptoEvent } from "./index";
 import { crypto } from "./crypto";
@@ -183,15 +183,12 @@ export class BackupManager implements SecureKeyBackup {
         return Boolean(this.algorithm);
     }
 
-    public getKeyBackupStatus(): KeyBackupStatus | null {
+    public getKeyBackupStatus(): string | null {
         if (!this.checkedForBackup) {
             return null;
         }
         if (this.algorithm && this.version) {
-            return {
-                version: this.version,
-                enabled: true,
-            };
+            return this.version;
         } else {
             return null;
         }

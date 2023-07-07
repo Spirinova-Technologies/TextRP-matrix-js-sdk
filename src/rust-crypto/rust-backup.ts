@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { IKeyBackupCheck, KeyBackupStatus, SecureKeyBackup } from "../crypto-api/keybackup";
+import { IKeyBackupCheck, SecureKeyBackup } from "../crypto-api/keybackup";
 
 export class RustBackupManager implements SecureKeyBackup {
     public stop(): void {
@@ -26,7 +26,7 @@ export class RustBackupManager implements SecureKeyBackup {
         return null;
     }
 
-    public getKeyBackupStatus(): KeyBackupStatus | null {
+    public getKeyBackupStatus(): string | null {
         //TODO stub
         return null;
     }
