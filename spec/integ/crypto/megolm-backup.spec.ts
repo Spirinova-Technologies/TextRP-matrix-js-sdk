@@ -26,7 +26,6 @@ import { mockInitialApiRequests } from "../../test-utils/mockEndpoints";
 import { E2EKeyResponder } from "../../test-utils/E2EKeyResponder";
 import { E2EKeyReceiver } from "../../test-utils/E2EKeyReceiver";
 import { MatrixEventEvent } from "../../../src/models/event";
-import { KeyBackupStatus } from "../../../src/crypto-api/keybackup";
 
 const ROOM_ID = "!ROOM:ID";
 
@@ -200,7 +199,7 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
         await aliceClient.startClient();
 
         // At this point there is no backup
-        let backupStatus: KeyBackupStatus | null;
+        let backupStatus: string | null;
         backupStatus = aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
         expect(backupStatus).toBeNull();
 
