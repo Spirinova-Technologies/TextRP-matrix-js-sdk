@@ -239,7 +239,6 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
 
         backupStatus = aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
         expect(backupStatus).toBeDefined();
-        expect(backupStatus?.enabled).toStrictEqual(true);
-        expect(backupStatus?.version).toStrictEqual(CURVE25519_BACKUP_INFO.version);
+        expect(backupStatus).toStrictEqual(CURVE25519_BACKUP_INFO.version);
     });
 });
