@@ -76,6 +76,21 @@ export interface IKeyBackupCheck {
     trustInfo: TrustInfo;
 }
 
+export type AuthData = IKeyBackupInfo["auth_data"];
+
+/**
+ * Prepared backup data.
+ * Contains the data needed to create a new version.
+ */
+/* eslint-disable camelcase */
+export interface IPreparedKeyBackupVersion {
+    algorithm: string;
+    auth_data: AuthData;
+    recovery_key: string;
+    privateKey: Uint8Array;
+}
+/* eslint-enable camelcase */
+
 /**
  * Server side keys backup management.
  * Devices may upload encrypted copies of keys to the server.
@@ -100,4 +115,22 @@ export interface SecureKeyBackup {
      * to it.
      */
     checkAndStart(): Promise<IKeyBackupCheck | null>;
+
+    /**
+     * Set up the data required to create a new backup version.  The backup version
+     * will not be created and enabled until createKeyBackupVersion is called.
+     *
+     * @param password - Passphrase string that can be entered by the user
+     *     when restoring the backup as an alternative to entering the recovery key.
+     *     Optional. If null a random recovery key will be created
+     *
+     * @returns Object that can be passed to createKeyBackupVersion and
+     *     additionally has a 'recovery_key' member with the user-facing recovery key string. The backup data is not yet signed, the cryptoBackend will do it.
+     */
+    prepareUnsignedKeyBackupVersion(
+        key?: string | Uint8Array | null,
+        algorithm?: string | undefined,
+    ): Promise<IPreparedKeyBackupVersion>;
+
+    createKeyBackupVersion(info: IKeyBackupInfo): Promise<void>;
 }

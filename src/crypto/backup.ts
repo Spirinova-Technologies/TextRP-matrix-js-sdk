@@ -34,7 +34,14 @@ import {
     IKeyBackupInfo,
     IKeyBackupSession,
 } from "./keybackup";
-import { IKeyBackupCheck, SecureKeyBackup, SigInfo, TrustInfo } from "../crypto-api";
+import {
+    AuthData,
+    IKeyBackupCheck,
+    IPreparedKeyBackupVersion,
+    SecureKeyBackup,
+    SigInfo,
+    TrustInfo,
+} from "../crypto-api";
 import { UnstableValue } from "../NamespacedValue";
 import { CryptoEvent } from "./index";
 import { crypto } from "./crypto";
@@ -43,19 +50,8 @@ import { HTTPError, MatrixError } from "../http-api";
 const KEY_BACKUP_KEYS_PER_REQUEST = 200;
 const KEY_BACKUP_CHECK_RATE_LIMIT = 5000; // ms
 
-type AuthData = IKeyBackupInfo["auth_data"];
-
 // re-export for backward compatibility
-export type { TrustInfo, SigInfo, IKeyBackupCheck } from "../crypto-api/keybackup";
-
-/* eslint-disable camelcase */
-export interface IPreparedKeyBackupVersion {
-    algorithm: string;
-    auth_data: AuthData;
-    recovery_key: string;
-    privateKey: Uint8Array;
-}
-/* eslint-enable camelcase */
+export type { TrustInfo, SigInfo, IKeyBackupCheck, AuthData, IPreparedKeyBackupVersion } from "../crypto-api/keybackup";
 
 /** A function used to get the secret key for a backup.
  */
@@ -194,7 +190,15 @@ export class BackupManager implements SecureKeyBackup {
         }
     }
 
+    /** @deprecated Do not use directly, use CryptoApi.prepareKeyBackupVersion()  */
     public async prepareKeyBackupVersion(
+        key?: string | Uint8Array | null,
+        algorithm?: string | undefined,
+    ): Promise<IPreparedKeyBackupVersion> {
+        return this.prepareUnsignedKeyBackupVersion(key, algorithm);
+    }
+
+    public async prepareUnsignedKeyBackupVersion(
         key?: string | Uint8Array | null,
         algorithm?: string | undefined,
     ): Promise<IPreparedKeyBackupVersion> {

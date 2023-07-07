@@ -240,4 +240,51 @@ describe.each(Object.entries(CRYPTO_BACKENDS))("megolm-keys backup (%s)", (backe
         expect(backupStatus).toBeDefined();
         expect(backupStatus).toStrictEqual(CURVE25519_BACKUP_INFO.version);
     });
+
+    oldBackendOnly("test backup version creation", async function () {
+        // 404 means that there is no active backup
+        fetchMock.get("/_matrix/client/v3/room_keys/version", 404);
+
+        aliceClient = await initTestClient();
+        await aliceClient.startClient();
+
+        const preparedBackup = await aliceClient.prepareKeyBackupVersion();
+
+        // The prepared backup should be signed
+        // Only device signature as cross signing is not bootstraped
+        // TODO improvement bootstrap cross signing to check for the added signature
+        expect(preparedBackup?.auth_data.signatures?.[TEST_USER_ID]).toBeDefined();
+        expect(preparedBackup?.auth_data.signatures?.[TEST_USER_ID]?.[`ed25519:${TEST_DEVICE_ID}`]).toBeDefined();
+
+        // mock backup creation API
+        const backupVersion = "1";
+        const expectedBackupResponse = {
+            algorithm: preparedBackup.algorithm,
+            auth_data: preparedBackup.auth_data,
+            version: backupVersion,
+        };
+        fetchMock.post("express:/_matrix/client/v3/room_keys/version", expectedBackupResponse);
+        fetchMock.get("express:/_matrix/client/v3/room_keys/version", expectedBackupResponse, {
+            overwriteRoutes: true,
+        });
+
+        const backupEnabled = new Promise<void>((resolve, reject) => {
+            aliceClient.on(CryptoEvent.KeyBackupStatus, (enabled) => {
+                if (enabled) {
+                    resolve();
+                }
+            });
+        });
+
+        await aliceClient.createKeyBackupVersion({
+            algorithm: preparedBackup.algorithm,
+            auth_data: preparedBackup.auth_data,
+        });
+
+        await backupEnabled;
+
+        const backupStatus = aliceClient.getCrypto()!.getBackupManager()!.getKeyBackupStatus();
+        expect(backupStatus).toBeDefined();
+        expect(backupStatus).toStrictEqual(CURVE25519_BACKUP_INFO.version);
+    });
 });

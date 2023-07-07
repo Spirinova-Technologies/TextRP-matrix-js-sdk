@@ -14,9 +14,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-import { IKeyBackupCheck, SecureKeyBackup } from "../crypto-api/keybackup";
+import { IKeyBackupCheck, IPreparedKeyBackupVersion, KeyBackupInfo, SecureKeyBackup } from "../crypto-api/keybackup";
 
 export class RustBackupManager implements SecureKeyBackup {
+    public async createKeyBackupVersion(info: KeyBackupInfo): Promise<void> {
+        //TODO stub
+        return;
+    }
+
+    public async prepareUnsignedKeyBackupVersion(
+        key?: string | Uint8Array | null | undefined,
+        algorithm?: string | undefined,
+    ): Promise<IPreparedKeyBackupVersion> {
+        throw new Error("Method not implemented.");
+    }
+
     public stop(): void {
         throw new Error("Method not implemented.");
     }

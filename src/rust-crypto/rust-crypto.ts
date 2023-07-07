@@ -39,6 +39,7 @@ import {
     CryptoCallbacks,
     DeviceVerificationStatus,
     GeneratedSecretStorageKey,
+    IPreparedKeyBackupVersion,
     ImportRoomKeyProgressData,
     ImportRoomKeysOpts,
     SecureKeyBackup,
@@ -474,6 +475,7 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, RustCryptoEv
      * Implementation of {@link CryptoApi#signObject}
      */
     public async signObject<T extends ISignableObject & object>(obj: T): Promise<void> {
+        // TODO add some test (coming in future PR)
         const sigs = new Map(Object.entries(obj.signatures || {}));
         const unsigned = obj.unsigned;
 
@@ -482,10 +484,13 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, RustCryptoEv
 
         const userSignatures = sigs.get(this.userId) || {};
         sigs.set(this.userId, userSignatures);
-        userSignatures["ed25519:" + this.olmMachine.deviceId.toString()] = await this.olmMachine.sign(
-            anotherjson.stringify(obj),
-        );
-        obj.signatures = recursiveMapToObject(sigs);
+
+        const signatures: RustSdkCryptoJs.Signatures = await this.olmMachine.sign(anotherjson.stringify(obj));
+
+        const mySignatures = signatures.get(this.olmMachine.userId);
+        if (mySignatures) {
+            obj.signatures = recursiveMapToObject(mySignatures);
+        }
         if (unsigned !== undefined) obj.unsigned = unsigned;
     }
 
@@ -944,6 +949,19 @@ export class RustCrypto extends TypedEventEmitter<RustCryptoEvents, RustCryptoEv
 
     public getBackupManager(): SecureKeyBackup {
         return this.backupManager;
+    }
+
+    public async prepareKeyBackupVersion(
+        key?: string | Uint8Array | null | undefined,
+        algorithm?: string | undefined,
+    ): Promise<IPreparedKeyBackupVersion> {
+        const preparedVersion = await this.getBackupManager().prepareUnsignedKeyBackupVersion(key, algorithm);
+
+        // sign the auth_data with existing device and cross signing keys if available
+        await this.signObject(preparedVersion.auth_data);
+
+        // return the now signed version
+        return preparedVersion;
     }
 }
 

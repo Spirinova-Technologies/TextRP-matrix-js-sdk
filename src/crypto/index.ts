@@ -98,6 +98,7 @@ import {
     ImportRoomKeysOpts,
     VerificationRequest as CryptoApiVerificationRequest,
     SecureKeyBackup,
+    IPreparedKeyBackupVersion,
 } from "../crypto-api";
 import { Device, DeviceMap } from "../models/device";
 import { deviceInfoToDevice } from "./device-converter";
@@ -537,6 +538,29 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
                 return CrossSigningInfo.getFromSecretStorage(type, this.secretStorage);
             };
         }
+    }
+
+    public async prepareKeyBackupVersion(
+        key?: string | Uint8Array | null | undefined,
+        algorithm?: string | undefined,
+    ): Promise<IPreparedKeyBackupVersion> {
+        const preparedVersion = await this.getBackupManager().prepareUnsignedKeyBackupVersion(key, algorithm);
+
+        // sign the auth_data with existing device and cross signing keys if available
+        await this.signObject(preparedVersion.auth_data);
+        if (this.crossSigningInfo.getId() && (await this.crossSigningInfo.isStoredInKeyCache("master"))) {
+            try {
+                logger.log("Adding cross-signing signature to key backup");
+                await this.crossSigningInfo.signObject(preparedVersion.auth_data, "master");
+            } catch (e) {
+                // This step is not critical (just helpful), so we catch here
+                // and continue if it fails.
+                logger.error("Signing key backup with cross-signing keys failed", e);
+            }
+        }
+
+        // return the now signed version
+        return preparedVersion;
     }
 
     public getBackupManager(): SecureKeyBackup {
@@ -982,20 +1006,20 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
             }
         };
 
-        const signKeyBackupWithCrossSigning = async (keyBackupAuthData: IKeyBackupInfo["auth_data"]): Promise<void> => {
-            if (this.crossSigningInfo.getId() && (await this.crossSigningInfo.isStoredInKeyCache("master"))) {
-                try {
-                    logger.log("Adding cross-signing signature to key backup");
-                    await this.crossSigningInfo.signObject(keyBackupAuthData, "master");
-                } catch (e) {
-                    // This step is not critical (just helpful), so we catch here
-                    // and continue if it fails.
-                    logger.error("Signing key backup with cross-signing keys failed", e);
-                }
-            } else {
-                logger.warn("Cross-signing keys not available, skipping signature on key backup");
-            }
-        };
+        // const signKeyBackupWithCrossSigning = async (keyBackupAuthData: IKeyBackupInfo["auth_data"]): Promise<void> => {
+        //     if (this.crossSigningInfo.getId() && (await this.crossSigningInfo.isStoredInKeyCache("master"))) {
+        //         try {
+        //             logger.log("Adding cross-signing signature to key backup");
+        //             await this.crossSigningInfo.signObject(keyBackupAuthData, "master");
+        //         } catch (e) {
+        //             // This step is not critical (just helpful), so we catch here
+        //             // and continue if it fails.
+        //             logger.error("Signing key backup with cross-signing keys failed", e);
+        //         }
+        //     } else {
+        //         logger.warn("Cross-signing keys not available, skipping signature on key backup");
+        //     }
+        // };
 
         const oldSSSSKey = await this.secretStorage.getKey();
         const [oldKeyId, oldKeyInfo] = oldSSSSKey || [null, null];
@@ -1050,10 +1074,10 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
             // store the backup key in secret storage
             await secretStorage.store("m.megolm_backup.v1", olmlib.encodeBase64(backupKey!), [newKeyId]);
 
-            // The backup is trusted because the user provided the private key.
-            // Sign the backup with the cross-signing key so the key backup can
-            // be trusted via cross-signing.
-            await signKeyBackupWithCrossSigning(keyBackupInfo.auth_data);
+            // // The backup is trusted because the user provided the private key.
+            // // Sign the backup with the cross-signing key so the key backup can
+            // // be trusted via cross-signing.
+            // await signKeyBackupWithCrossSigning(keyBackupInfo.auth_data);
 
             builder.addSessionBackup(keyBackupInfo);
         } else {

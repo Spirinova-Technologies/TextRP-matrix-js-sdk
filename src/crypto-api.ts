@@ -20,7 +20,7 @@ import { DeviceMap } from "./models/device";
 import { UIAuthCallback } from "./interactive-auth";
 import { AddSecretStorageKeyOpts, SecretStorageCallbacks, SecretStorageKeyDescription } from "./secret-storage";
 import { VerificationRequest } from "./crypto-api/verification";
-import { KeyBackupInfo, SecureKeyBackup } from "./crypto-api/keybackup";
+import { IPreparedKeyBackupVersion, KeyBackupInfo, SecureKeyBackup } from "./crypto-api/keybackup";
 
 /**
  * Public interface to the cryptography parts of the js-sdk
@@ -305,7 +305,19 @@ export interface CryptoApi {
      */
     signObject<T extends ISignableObject & object>(obj: T): Promise<void>;
 
+    /**
+     * Gets the backup manager.
+     */
     getBackupManager(): SecureKeyBackup;
+
+    /**
+     * Prepare a backup version, signed with current device and identity (if available).
+     * Can be use to upload a new backup.
+     */
+    prepareKeyBackupVersion(
+        key?: string | Uint8Array | null,
+        algorithm?: string | undefined,
+    ): Promise<IPreparedKeyBackupVersion>;
 }
 
 /**
