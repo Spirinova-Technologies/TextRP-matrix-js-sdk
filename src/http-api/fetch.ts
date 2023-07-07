@@ -25,7 +25,6 @@ import { ConnectionError, MatrixError } from "./errors";
 import { HttpApiEvent, HttpApiEventHandlerMap, IHttpOpts, IRequestOpts } from "./interface";
 import { anySignal, parseErrorResponse, timeoutSignal } from "./utils";
 import { QueryDict } from "../utils";
-import { logger } from "../logger";
 
 type Body = Record<string, any> | BodyInit;
 
@@ -226,9 +225,6 @@ export class FetchHttpApi<O extends IHttpOpts> {
         body?: Body,
         opts: Pick<IRequestOpts, "headers" | "json" | "localTimeoutMs" | "keepAlive" | "abortSignal"> = {},
     ): Promise<ResponseType<T, O>> {
-        const urlForLogs = this.clearUrlParamsForLogs(url);
-        logger.debug(`FetchHttpApi: ${method} --> ${urlForLogs}`);
-
         const headers = Object.assign({}, opts.headers || {});
         const json = opts.json ?? true;
         // We can't use getPrototypeOf here as objects made in other contexts e.g. over postMessage won't have same ref
@@ -264,7 +260,6 @@ export class FetchHttpApi<O extends IHttpOpts> {
         const { signal, cleanup } = anySignal(signals);
 
         let res: Response;
-        const start = Date.now();
         try {
             res = await this.fetch(url, {
                 signal,
@@ -279,10 +274,7 @@ export class FetchHttpApi<O extends IHttpOpts> {
                 credentials: "omit", // we send credentials via headers
                 keepalive: keepAlive,
             });
-
-            logger.debug(`FetchHttpApi: ${method} <-- ${res.status} ${Date.now() - start}ms ${urlForLogs}`);
         } catch (e) {
-            logger.debug(`FetchHttpApi: ${method} <-- ${e} ${Date.now() - start}ms ${urlForLogs}`);
             if ((<Error>e).name === "AbortError") {
                 throw e;
             }
@@ -301,22 +293,6 @@ export class FetchHttpApi<O extends IHttpOpts> {
         return res as ResponseType<T, O>;
     }
 
-    private clearUrlParamsForLogs(url: URL | string): string {
-        try {
-            let asUrl: URL;
-            if (typeof url === "string") {
-                asUrl = new URL(url);
-            } else {
-                asUrl = url;
-            }
-            // get just the path to remove any potential url param that could have
-            // some potential secrets
-            return asUrl.pathname.toString();
-        } catch (error) {
-            // defensive coding for malformed url
-            return "??";
-        }
-    }
     /**
      * Form and return a homeserver request URL based on the given path params and prefix.
      * @param path - The HTTP path <b>after</b> the supplied prefix e.g. "/createRoom".
