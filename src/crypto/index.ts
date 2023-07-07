@@ -1059,11 +1059,6 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
             // store the backup key in secret storage
             await secretStorage.store("m.megolm_backup.v1", olmlib.encodeBase64(backupKey!), [newKeyId]);
 
-            // // The backup is trusted because the user provided the private key.
-            // // Sign the backup with the cross-signing key so the key backup can
-            // // be trusted via cross-signing.
-            // await signKeyBackupWithCrossSigning(keyBackupInfo.auth_data);
-
             builder.addSessionBackup(keyBackupInfo);
         } else {
             // 4S is already set up
@@ -1108,12 +1103,6 @@ export class Crypto extends TypedEventEmitter<CryptoEvent, CryptoEventHandlerMap
                 algorithm: info.algorithm,
                 auth_data: info.auth_data,
             };
-
-            // Sign with cross-signing master key
-            await signKeyBackupWithCrossSigning(data.auth_data);
-
-            // sign with the device fingerprint
-            await this.signObject(data.auth_data);
 
             builder.addSessionBackup(data);
         }
